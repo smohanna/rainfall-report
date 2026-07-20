@@ -1,0 +1,32 @@
+artifacts = ["/app/report.json"]
+
+[task]
+name = "dynamo/rainfall-report"
+description = "Parse a CSV of daily rainfall readings into a small JSON extreme-rainfall summary."
+
+[metadata]
+category = "data_processing_and_etl"
+subcategory = "text_processing"
+task_objective = ["transform", "generate"]
+artifact_type = ["text_or_log_file", "generated_output_artifact"]
+expert_time_estimate_hours = 0.3
+model_tested = "GPT-5.4"
+agent_tested = "Terminus-2"
+difficulty_explanation = "Parse a small rainfall CSV and emit aggregate statistics with a threshold count."
+solution_explanation = "Read the CSV, sum total rainfall, count days over the extreme threshold, and find the wettest day."
+verification_explanation = "Recompute total rainfall, day count, extreme-day count, and wettest day from the CSV and assert the JSON report matches exactly."
+
+[verifier]
+timeout_sec = 120.0
+
+[agent]
+timeout_sec = 120.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+gpus = 0
+allow_internet = false
+mcp_servers = []
