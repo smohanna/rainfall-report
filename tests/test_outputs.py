@@ -6,9 +6,13 @@ EXTREME_THRESHOLD_MM = 50.0
 
 
 def _recompute():
-    """Recompute expected values directly from /app/rainfall.csv (source of truth)."""
+    """Recompute expected values directly from /app/rainfall.csv (source of truth).
+
+    Mirrors the instruction's rules: malformed/blank rainfall_mm rows are skipped;
+    ties for the wettest day are broken by earliest file order (strict >).
+    """
     total_rainfall = 0.0
-    day_count = 0
+    valid_readings = 0
     extreme_days = 0
     wettest_day = None
     wettest_value = -1.0
@@ -17,15 +21,19 @@ def _recompute():
         for row in reader:
             if not row.get("date"):
                 continue
-            mm = float(row["rainfall_mm"])
+            raw = (row.get("rainfall_mm") or "").strip()
+            try:
+                mm = float(raw)
+            except ValueError:
+                continue
             total_rainfall += mm
-            day_count += 1
+            valid_readings += 1
             if mm >= EXTREME_THRESHOLD_MM:
                 extreme_days += 1
             if mm > wettest_value:
                 wettest_value = mm
                 wettest_day = row["date"]
-    return round(total_rainfall, 2), day_count, extreme_days, wettest_day
+    return round(total_rainfall, 2), valid_readings, extreme_days, wettest_day
 
 
 def _load_report():
@@ -39,16 +47,18 @@ def test_report_exists_and_valid_json():
     _load_report()  # raises if not valid JSON
 
 
-def test_day_count():
-    """Criterion 2: day_count equals the number of data rows in /app/rainfall.csv."""
+def test_valid_readings_excludes_malformed():
+    """Criterion 2: valid_readings counts only rows whose rainfall_mm parses as a number."""
     _, expected, _, _ = _recompute()
     data = _load_report()
-    assert "day_count" in data, "Missing day_count"
-    assert data["day_count"] == expected, f"Expected {expected}, got {data['day_count']}"
+    assert "valid_readings" in data, "Missing valid_readings"
+    assert data["valid_readings"] == expected, (
+        f"Expected {expected}, got {data['valid_readings']}"
+    )
 
 
 def test_total_rainfall():
-    """Criterion 3: total_rainfall_mm equals the sum of rainfall_mm, rounded to 2 decimals."""
+    """Criterion 3: total_rainfall_mm sums only valid rows, rounded to 2 decimals."""
     expected, _, _, _ = _recompute()
     data = _load_report()
     assert "total_rainfall_mm" in data, "Missing total_rainfall_mm"
@@ -58,16 +68,20 @@ def test_total_rainfall():
 
 
 def test_extreme_days():
-    """Criterion 4: extreme_days equals the count of rows with rainfall_mm >= 50.0."""
+    """Criterion 4: extreme_days counts valid rows with rainfall_mm >= 50.0."""
     _, _, expected, _ = _recompute()
     data = _load_report()
     assert "extreme_days" in data, "Missing extreme_days"
-    assert data["extreme_days"] == expected, f"Expected {expected}, got {data['extreme_days']}"
+    assert data["extreme_days"] == expected, (
+        f"Expected {expected}, got {data['extreme_days']}"
+    )
 
 
-def test_wettest_day():
-    """Criterion 5: wettest_day equals the date of the row with the highest rainfall_mm."""
+def test_wettest_day_tie_breaks_to_earliest():
+    """Criterion 5: wettest_day is the highest rainfall row; ties break to earliest file order."""
     _, _, _, expected = _recompute()
     data = _load_report()
     assert "wettest_day" in data, "Missing wettest_day"
-    assert data["wettest_day"] == expected, f"Expected {expected}, got {data['wettest_day']}"
+    assert data["wettest_day"] == expected, (
+        f"Expected {expected}, got {data['wettest_day']}"
+    )

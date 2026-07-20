@@ -1,10 +1,10 @@
 date,station,rainfall_mm
 2024-04-28,porto_alegre,12.4
-2024-04-29,porto_alegre,58.9
+2024-04-29,porto_alegre,103.6
 2024-04-30,porto_alegre,71.2
 2024-05-01,porto_alegre,103.6
 2024-05-02,porto_alegre,88.1
-2024-05-03,porto_alegre,4.7
-2024-05-04,porto_alegre,0.0
-2024-05-05,porto_alegre,49.9
-2024-05-06,porto_alegre,52.0
+2024-05-03,porto_alegre,BROKEN
+2024-05-04,porto_alegre,49.9
+2024-05-05,porto_alegre,52.0
+2024-05-06,porto_alegre,
