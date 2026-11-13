@@ -43,6 +43,38 @@ to handle it — so the task tests judgment, not just a loop:
 These are the kinds of details that separate a real evaluation task from one that
 gives full marks to sloppy work.
 
+## Stress-testing the verifier
+
+Oracle and nop only cover the two extremes: a fully correct solution and no solution at
+all. `robustness/check_verifier.py` covers the space in between. It runs the real verifier
+against solutions whose verdict is known in advance and checks that the verdict matches.
+
+```
+python3 robustness/check_verifier.py     # no Docker needed
+```
+
+| solution | what it does | verdict |
+| --- | --- | --- |
+| `solution/solve.py` | reference solution | pass |
+| `equivalent_solutions/different_style.py` | correct, other code structure, key order and JSON formatting | pass |
+| `wrong_solutions/naive_crash.py` | ignores malformed rows and crashes on `BROKEN` | fail |
+| `wrong_solutions/malformed_as_zero.py` | counts malformed rows as 0.0 instead of skipping them | fail (criterion 2 only) |
+| `wrong_solutions/wrong_tiebreak.py` | picks the last tied day instead of the earliest | fail (criterion 5 only) |
+| `wrong_solutions/empty_report.py` | creates an empty report without doing the work | fail |
+| `wrong_solutions/made_up_values.py` | writes a well-formed report with invented numbers | fail |
+
+### Known gaps
+
+The same harness found two wrong solutions that the verifier currently **passes**. They are
+kept in `robustness/known_gaps/` so the limits of this task are stated, not hidden:
+
+- **`hardcoded_answer.py`** writes the correct numbers without reading the data. The input
+  file never changes, so the verifier cannot tell memorised answers from real work. Closing
+  this needs inputs the agent has not seen, such as a second, hidden CSV at verify time.
+- **`strict_threshold.py`** uses `> 50.0` instead of `>= 50.0`. No reading in the data is
+  exactly 50.0, so the boundary of the rule is never exercised. Closing this needs a 50.0
+  row in `rainfall.csv`.
+
 ## Layout
 
 ```
@@ -55,9 +87,14 @@ rainfall-report/
 ├── solution/
 │   ├── solve.sh             # entrypoint the "oracle" runs
 │   └── solve.py             # reference solution (handles both edge cases)
-└── tests/
-    ├── test.sh              # runs pytest, writes reward.txt + ctrf.json
-    └── test_outputs.py      # one test per success criterion
+├── tests/
+│   ├── test.sh              # runs pytest, writes reward.txt + ctrf.json
+│   └── test_outputs.py      # one test per success criterion
+└── robustness/
+    ├── check_verifier.py    # runs the verifier against the solutions below
+    ├── wrong_solutions/     # must fail
+    ├── equivalent_solutions/# must pass
+    └── known_gaps/          # wrong, but not detected yet
 ```
 
 ## Why this task is authored correctly
